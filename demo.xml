@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<dolphin>
+	<!-- 所有的source都会被转换成parquet(临时表) -->
+	<formats>
+		<csv name="csv" delimiter="\|" />
+	</formats>
+	<dbsources>
+		<!-- 配置数据库, 目前支持 mysql 和 oracle，不需要配置驱动, 下一个版本会支持密码加密 -->
+		<source name="mysql"
+			url="jdbc:mysql://60.205.141.127:19306/taibao?useSSL=false" username="root"
+			password="@WSX4rfv" />
+		<source name="oracle" url="jdbc:oracle:thin:@10.182.52.9:1521/chnldb" username="channel" password="channel" />
+	</dbsources>
+	<transforms>
+		<!-- 
+			from: csv, orc, parquet, 数据库(dbsources中配置的数据源)
+			to: 转换成 orc, parquet, 数据库(dbsources中配置的数据源)
+			toPath: csv, orc, parquet 配置hdfs, 数据库此项无效, 如果是 orc类型自动补全hive路径
+			format: csv 有效, 输入格式
+			
+			下一个版本提供:
+				CSV 输出格式化
+		 -->
+		<transform from="mysql" to="parquet" toPath="/t_channel/"
+			format="" fromSQL="select * from t_channel" tableName="t_channel_orc"
+			debug="true">
+			<map key="" value="" />
+		</transform>
+		<!-- TODO 流程这里还有问题 -->
+		<transform from="parquet" to="csv" toPath="/data/out/toan/t_channel/"
+			format="" fromSQL="select count(1) from t_channel" tableName="t_channel_orc"
+			debug="true">
+			<map key="" value="" />
+		</transform>
+		
+	</transforms>
+
+</dolphin>

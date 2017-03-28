@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<dolphin>
+	<meta delimiter="\|" />
+	<columns>
+		<column type="string" nullable="true">empno</column>
+		<column type="string" nullable="true">name</column>
+	</columns>
+</dolphin>

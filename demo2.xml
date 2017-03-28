@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<dolphin>
+	<formats>
+		<csv name="csv" delimiter="\|" />
+	</formats>
+	
+	<dbsources>
+		<!-- 配置数据库, 目前支持 mysql 和 oracle，不需要配置驱动, 下一个版本会支持密码加密 -->
+		<source name="mysql"
+			url="jdbc:mysql://60.205.141.127:19306/taibao?useSSL=false" username="root"
+			password="@WSX4rfv" />
+		<source name="oracle" url="jdbc:oracle:thin:@10.182.52.9:1521/chnldb" username="channel" password="channel" />
+	</dbsources>
+	
+	<transforms>
+		<transform from="mysql" to="parquet" fromPath="" toPath="/data/in/toan/aa/t_component_d/" format="" 
+		table="" sql="select * from t_component_d" tmpTable="p_t_component_d" hiveTable="" >
+			<!-- <column name="" cname="" type="" nullable="" /> -->
+		</transform>
+		
+		<transform from="sql" to="csv" fromPath="" toPath="/data/in/toan/bb/t_component_d/" format="" 
+		table="" sql="select count(1) from p_t_component_d" tmpTable="" hiveTable="" >
+			<!-- <column name="" cname="" type="" nullable="" /> -->
+		</transform>
+		
+		<!-- TODO 流程这里还有问题 -->
+		<!-- <transform from="parquet" to="csv" toPath="/data/out/toan/t_channel/"
+			format="" fromSQL="select count(1) from t_channel" tableName="t_channel_orc"
+			debug="true">
+			<map key="" value="" />
+		</transform> -->
+		
+	</transforms>
+</dolphin>

@@ -1,0 +1,17 @@
+target/
+project/project
+*/target/
+bin/
+images/
+.settings/
+.cache-main
+.classpath
+.project
+.idea
+.cache-tests
+*.log
+logs/
+*/.tmpBin/
+zookeeper.out
+*/.classpath
+*/settings/
