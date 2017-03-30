@@ -1,6 +1,9 @@
 package com.maogogo.dolphin.models
 
 import scala.io.Source
+import org.apache.spark.sql.types.StructField
+import org.apache.spark.sql.types.StringType
+import org.apache.spark.sql.types.StructType
 
 case class DBSourceModel(name: String, url: String, username: String, password: String) {
   def getDriver: String = {
@@ -29,29 +32,16 @@ case class ColumnModel(name: String, cname: Option[String], typeName: Option[Str
  */
 case class TransformModel(from: String, to: String, fromPath: Option[String], toPath: Option[String], format: Option[String],
     table: Option[String], sql: Option[String], tmpTable: Option[String], hiveTable: Option[String],
-    db: Option[Seq[DBSourceModel]], columns: Option[Seq[ColumnModel]]) {
+    db: Option[Seq[DBSourceModel]], columns: Option[Seq[ColumnModel]], childTransform: Option[TransformModel]) {
   val sqlP = "(?i)select.*".r.pattern
   val subfix = "1 = ? AND 1 < ?"
 
-  //  /**
-  //   * TODO
-  //   * 这里应该做成配置
-  //   */
-  //  def hdfsToPath: String = {
-  //    from match {
-  //      case "orc" => s"/user/hive/warehouse${toPath.getOrElse("")}"
-  //      case _ => toPath.getOrElse("")
-  //    }
-  //  }
-  //
   def dbSql: String = {
-
     sql match {
       case Some(s) if !s.isEmpty && sqlP.matcher(s.trim).matches => s.trim
       case Some(s) if !s.isEmpty =>
         Source.fromFile(s).getLines.mkString(" ").stripMargin.trim
     }
-
   }
 
   /**
@@ -64,7 +54,14 @@ case class TransformModel(from: String, to: String, fromPath: Option[String], to
         s"${s} and ${subfix}"
       case _ => s"${sql.getOrElse("")} where ${subfix}"
     }
+  }
 
+  def hiveSchema: Option[StructType] = {
+    columns.map { cols =>
+      StructType(cols.map { x =>
+        StructField(x.name, StringType, x.nullable)
+      })
+    }
   }
 
 }

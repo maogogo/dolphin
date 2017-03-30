@@ -31,6 +31,12 @@ import com.maogogo.dolphin.services.HiveTransform
  *
  *
  *
+ * 待完成
+ * 1、外界参数
+ * 2、orc数据问题
+ * 3、
+ *
+ *
  */
 object Main extends DolphinModule {
 
@@ -41,31 +47,51 @@ object Main extends DolphinModule {
   def main(args: Array[String]): Unit = {
 
     println(logo)
-    val models = provideDolphinModel("/home/cpic/bigPM/Test/Qiang/demo2.xml")
 
-    implicit val hiveContext = new HiveContext(sc)
+//    val schema = StructType(Seq(
+//      StructField("aa", StringType, true),
+//      StructField("bb", StringType, true),
+//      StructField("cc", StringType, true),
+//      StructField("dd", StringType, true),
+//      StructField("ee", StringType, true)))
+//
+//    val data = sqlContent.read.format("com.databricks.spark.csv").schema(schema).options(Map("path" -> "/data/in/toan/bb/aa.txt",
+//      "header" -> "false", "delimiter" -> "|", "nullValue" -> "", "treatEmptyValuesAsNulls" -> "true")).load
+//
+//    data.collect().map { row =>
+//      println("===>>" + row + "#######" + row.get(4))
+//    }
 
-    val hive = new HiveTransform
-
-    hive.from(models)
-
-    //    val props = new Properties
-    //    props.put("driver", "com.mysql.jdbc.Driver")
-    //    props.put("user", "root")
-    //    props.put("password", "@WSX4rfv")
-    //    val hive = new HiveContext(sc)
-    //    val data = hive.read.jdbc("jdbc:mysql://60.205.141.127:19306/taibao?useSSL=false", "t_component", props)
+    //    spark.sparkContext.hadoopConfiguration.set("fs.s3n.awsAccessKeyId", "*********")
+    //    spark.sparkContext.hadoopConfiguration.set("fs.s3n.awsSecretAccessKey", "*********")
+    //    if (args == null || args.length != 1)
+    //      throw new Exception("please set input xml file path")
     //
-    //    data.write.mode(SaveMode.Overwrite).saveAsTable("t_component") //.orc("/user/hive/warehouse/t_component/")
+    //    println(s"load xml file ${args(0)}")
 
-    //    val data = hive.read.orc("/data/in/toan/t_channel_user/")
-    //    data.registerTempTable("t_channel_orc_d")
+    //    val models = provideDolphinModel(args(0))
     //
-    //    //println("==================>>>>")
-    //    hive.sql("select count(1) from t_channel_user").collect.map { row =>
-    //      println("===>>>>>>" + row.get(0).toString)
-    //    }
+    //    val hive = new HiveTransform
     //
+    //    hive.transform(models)
+    //
+    //    //    val props = new Properties
+    //    //    props.put("driver", "com.mysql.jdbc.Driver")
+    //    //    props.put("user", "root")
+    //    //    props.put("password", "@WSX4rfv")
+    //    //    val hive = new HiveContext(sc)
+    //    //    val data = hive.read.jdbc("jdbc:mysql://60.205.141.127:19306/taibao?useSSL=false", "t_component", props)
+    //    //
+    //    //    data.write.mode(SaveMode.Overwrite).saveAsTable("t_component") //.orc("/user/hive/warehouse/t_component/")
+    //
+    //    //    val data = hive.read.orc("/data/in/toan/t_channel_user/")
+    //    //    data.registerTempTable("t_channel_orc_d")
+    //    //
+    //    //    //println("==================>>>>")
+    //    //    hive.sql("select count(1) from t_channel_user").collect.map { row =>
+    //    //      println("===>>>>>>" + row.get(0).toString)
+    //    //    }
+    //    //
     sc.stop
     //val model = provideDolphinModel("/cpic/bigdata/bigpm/Test/demo.xml")
 
