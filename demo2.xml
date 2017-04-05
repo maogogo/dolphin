@@ -1,7 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <dolphin>
 	<formats>
-		<csv name="csv" delimiter="\|" />
+		<format name="csv" delimiter="\|" />
+		<format name="date" f="yyyyMMddHHmmss" />
 	</formats>
 
 	<dbsources>
@@ -14,24 +15,23 @@
 	</dbsources>
 
 	<transforms>
-		<transform from="csv" to="csv" fromPath="/data/in/toan/bb/aa.txt"
-			toPath="/data/in/toan/cc/dd/" format="" table="" sql=""
-			tmpTable="p_t_component_d" hiveTable="test_hive_aa">
+		<transform from="csv" to="cache" fromPath="/data/in/toan/bb/aa.txt"
+			toPath="" format="" table="" sql="" tmpTable="" hiveTable="" model="">
 			<columns>
 				<column name="aa" cname="" type="" nullable="" />
 				<column name="bb" cname="" type="" nullable="" />
 				<column name="cc" cname="" type="" nullable="" />
-				<column name="dd" cname="" type="" nullable="" />
+				<column name="dd" cname="" type="" nullable="" format="date" />
 			</columns>
-			<!-- <transform from="sql" to="csv" fromPath="" toPath="/data/in/toan/bb/t_component_d/" 
-				format="" table="" sql="select count(1) from p_t_component_d" tmpTable="" 
-				hiveTable=""> </transform> -->
+			<transform from="sql" to="csv" fromPath=""
+				toPath="/data/in/toan/bb/t_component_d/" format="" table=""
+				sql="select * from p_t_component_d where aa={aa}" tmpTable="" hiveTable="" model="">
+			</transform>
 		</transform>
 
-		<transform from="sql" to="csv" fromPath=""
-			toPath="/data/in/toan/bb/t_component_d/" format="" table=""
-			sql="select count(1) from p_t_component_d" tmpTable="" hiveTable="">
-		</transform>
+		<!-- <transform from="sql" to="csv" fromPath="" toPath="/data/in/toan/bb/t_component_d/" 
+			format="" table="" sql="select count(1) from p_t_component_d" tmpTable="" 
+			hiveTable=""> </transform> -->
 
 
 		<!-- <transform from="mysql" to="parquet" fromPath="" toPath="/data/in/toan/aa/t_component_d/" 

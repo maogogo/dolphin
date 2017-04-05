@@ -48,7 +48,7 @@ case class TransformModel(from: String, to: String, fromPath: Option[String], to
    * TODO
    * 如果中间有where的情况这样不支持
    */
-  def hiveSQL: String = {
+  def partitionSQL: String = {
     dbSql match {
       case s if s.toLowerCase().contains("where") =>
         s"${s} and ${subfix}"

@@ -133,7 +133,7 @@ class HiveTransform(implicit sc: SparkContext) extends Transform {
         DriverManager.getConnection(jdbc.get.url, jdbc.get.username, jdbc.get.password)
       },
       //TODO
-      model.hiveSQL,
+      "",
       1, 10, 1,
       { r =>
         val rsmd = r.getMetaData

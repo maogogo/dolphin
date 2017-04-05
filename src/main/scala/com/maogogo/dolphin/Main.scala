@@ -13,11 +13,10 @@ import org.apache.spark.sql.catalyst.CatalystTypeConverters
 import org.apache.spark.rdd.JdbcRDD
 import java.sql.DriverManager
 import java.sql.Connection
-import com.maogogo.dolphin.modules.SparkModule
-import com.maogogo.dolphin.models.TransformModel
-import com.maogogo.dolphin.models.DBSourceModel
+import com.maogogo.dolphin.modules._
 import java.util.Properties
 import com.maogogo.dolphin.services.HiveTransform
+import org.apache.hadoop.hbase.HBaseConfiguration
 
 /**
  * 创建外部表
@@ -36,31 +35,37 @@ import com.maogogo.dolphin.services.HiveTransform
  * 2、orc数据问题
  * 3、
  *
- *
+ * sbt "run demo2.xml"
  */
-object Main extends DolphinModule {
+object Main {//extends DolphinModule {
 
-  private[this] val conf: SparkConf = new SparkConf().setAppName("TestEmpno") //.setMaster("app04")
-  implicit val sc: SparkContext = new SparkContext(conf)
-  implicit val sqlContent: SQLContext = new SQLContext(sc)
+  //  private[this] val conf: SparkConf = new SparkConf().setAppName("TestEmpno") //.setMaster("app04")
+  //  implicit val sc: SparkContext = new SparkContext(conf)
+  //  implicit val sqlContent: SQLContext = new SQLContext(sc)
 
   def main(args: Array[String]): Unit = {
+    
+    //val conf = HBaseConfiguration.create()
+    
+    
 
-    println(logo)
+//    println(logo)
+//
+//    println(args(0))
 
-//    val schema = StructType(Seq(
-//      StructField("aa", StringType, true),
-//      StructField("bb", StringType, true),
-//      StructField("cc", StringType, true),
-//      StructField("dd", StringType, true),
-//      StructField("ee", StringType, true)))
-//
-//    val data = sqlContent.read.format("com.databricks.spark.csv").schema(schema).options(Map("path" -> "/data/in/toan/bb/aa.txt",
-//      "header" -> "false", "delimiter" -> "|", "nullValue" -> "", "treatEmptyValuesAsNulls" -> "true")).load
-//
-//    data.collect().map { row =>
-//      println("===>>" + row + "#######" + row.get(4))
-//    }
+    //    val schema = StructType(Seq(
+    //      StructField("aa", StringType, true),
+    //      StructField("bb", StringType, true),
+    //      StructField("cc", StringType, true),
+    //      StructField("dd", StringType, true),
+    //      StructField("ee", StringType, true)))
+    //
+    //    val data = sqlContent.read.format("com.databricks.spark.csv").schema(schema).options(Map("path" -> "/data/in/toan/bb/aa.txt",
+    //      "header" -> "false", "delimiter" -> "|", "nullValue" -> "", "treatEmptyValuesAsNulls" -> "true")).load
+    //
+    //    data.collect().map { row =>
+    //      println("===>>" + row + "#######" + row.get(4))
+    //    }
 
     //    spark.sparkContext.hadoopConfiguration.set("fs.s3n.awsAccessKeyId", "*********")
     //    spark.sparkContext.hadoopConfiguration.set("fs.s3n.awsSecretAccessKey", "*********")
@@ -92,7 +97,7 @@ object Main extends DolphinModule {
     //    //      println("===>>>>>>" + row.get(0).toString)
     //    //    }
     //    //
-    sc.stop
+    //sc.stop
     //val model = provideDolphinModel("/cpic/bigdata/bigpm/Test/demo.xml")
 
     //    model.trans.map { tran =>
