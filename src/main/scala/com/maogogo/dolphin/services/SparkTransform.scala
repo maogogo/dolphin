@@ -8,6 +8,7 @@ import org.apache.spark.sql.types._
 import org.apache.spark.rdd.JdbcRDD
 import java.sql._
 import com.databricks.spark.csv._
+import scala.io.Source
 
 /**
  * parquet 或是 orc(没测试) 文件才能创建外部表
@@ -23,32 +24,86 @@ class SparkTransform(implicit sc: SparkContext) extends Transform {
   def transform(models: Seq[TransformModel]): Unit = {
 
     models.map { model =>
-      val data = model.from match {
-        case "csv" => fromCSV(model) //这里应该注册一个外部表
-        case "parquet" => fromParquet(model)
-        case "orc" => fromOrc(model)
-        case "sql" => fromSQL(model)
-        case x => fromDB(model)
-      }
+      val data = fromSource(model)
 
-      model.to match {
-        case "csv" => toCSV(model, data)
-        case "parquet" => toParquet(model, data)
-        case "orc" => toOrc(model, data)
-        case _ => Unit //throw new Exception("not supported to ")
-      }
+      val dataRDD = process(model, data)
+
+      subTransform(model, dataRDD)
+
+      toTarget(model, dataRDD)
     }
   }
 
-  //  def fromSQL(model: TransformModel)(implicit hiveContext: HiveContext): DataFrame = {
-  //    val data = hiveContext.sql(model.sql.getOrElse(""))
-  //    data.printSchema
-  //    createTmpOrExTable(model, data)
-  //    data
-  //  }
+  def subTransform(model: TransformModel, dataRDD: DataFrame)(implicit sqlContext: SQLContext): Unit = {
 
-  def fromSQL(model: TransformModel)(implicit sqlContext: SQLContext): DataFrame = {
-    val data = sqlContext.sql(model.sql.getOrElse(""))
+    if (model.subTransform.isDefined) {
+      val tmpRDD = dataRDD.collect().map(r => Map(dataRDD.columns.zip(r.toSeq): _*))
+      dataRDD.collect().map { r =>
+        println("r ==>>>" + r)
+      }
+
+      tmpRDD.map { t =>
+        println("t ==>>>" + t)
+
+      }
+
+      println("===================")
+      tmpRDD.map { kv =>
+
+        println("kv ===>>>>" + kv)
+        //处理子流程
+        model.subTransform.map { subModel =>
+          val subData = fromSource(subModel, Some(kv))
+          //TODO 暂时不支持 子 process
+          //val subDataRDD = process(subModel, subData)
+          toTarget(subModel, subData, Some(kv))
+        }
+      }
+    }
+
+  }
+
+  def fromSource(model: TransformModel, kv: Option[Map[String, Any]] = None)(implicit sqlContext: SQLContext): DataFrame = {
+    model.from match {
+      case "csv" => fromCSV(model) //TODO 这里应该注册一个外部表
+      case "parquet" => fromParquet(model)
+      case "orc" => fromOrc(model)
+      case "sql" => fromSQL(model, kv)
+      case _ => fromDB(model)
+    }
+  }
+
+  def toTarget(model: TransformModel, dataRDD: DataFrame, kv: Option[Map[String, Any]] = None)(implicit sqlContext: SQLContext): Unit = {
+    model.to match {
+      case "csv" => toCSV(model, dataRDD, kv)
+      case "parquet" => toParquet(model, dataRDD)
+      case "orc" => toOrc(model, dataRDD)
+      case _ => Unit //throw new Exception("not supported to ")
+    }
+  }
+
+  def process(model: TransformModel, data: DataFrame)(implicit sqlContext: SQLContext): DataFrame = {
+    val sqlOrColumns = model.process match {
+      case Some(s) if s.trim.contains(java.io.File.separator) =>
+        Source.fromFile(s).getLines.mkString(" ").stripMargin.trim
+      case Some(s) if !s.isEmpty => s.trim
+      case _ => ""
+    }
+
+    sqlOrColumns match {
+      case s if s.startsWith("select") => sqlContext.sql(s)
+      case s if !s.isEmpty =>
+        val cols = s.split(",").toSeq
+        data.select(cols.head, cols.tail: _*)
+      case _ => data
+    }
+
+  }
+
+  def fromSQL(model: TransformModel, kv: Option[Map[String, Any]] = None)(implicit sqlContext: SQLContext): DataFrame = {
+    println("kv =>>" + kv)
+    println("sql ===>>>" + model.sqling(kv))
+    val data = sqlContext.sql(model.sqling(kv))
     data.printSchema
     if (model.tmpTable.isDefined && !model.tmpTable.get.isEmpty) {
       //println("p_t_component_d ===>>>" + model.tmpTable.get)
@@ -76,25 +131,14 @@ class SparkTransform(implicit sc: SparkContext) extends Transform {
       data.registerTempTable(model.tmpTable.get)
     }
 
-    //    if (model.hiveTable.isDefined && !model.hiveTable.get.isEmpty) {
-    //      val hiveContext = new HiveContext(sc)
-    //      //hiveContext.createExternalTable(model.hiveTable.get, model.fromPath.getOrElse(""))
-    //    }
-    
-    data.map { row =>
-      
-      
-      
-    }
-    
-
     data
 
   }
 
-  def toCSV(model: TransformModel, data: DataFrame) = {
+  def toCSV(model: TransformModel, data: DataFrame, kv: Option[Map[String, Any]] = None) = {
     //data.saveAsCsvFile(model.toPath.getOrElse(""), Map("delimiter" -> "|", "header" -> "false"))
-    data.write.format("com.databricks.spark.csv").mode(SaveMode.Overwrite).options(Map("path" -> model.toPath.getOrElse(""), "header" -> "false",
+    println("model.targetPath(kv) ===>>>>" + model.targetPath(kv))
+    data.write.format("com.databricks.spark.csv").mode(model.saveMode).options(Map("path" -> model.targetPath(kv), "header" -> "false",
       "delimiter" -> "|", "nullValue" -> "", "treatEmptyValuesAsNulls" -> "true")).save
   }
 
@@ -108,13 +152,13 @@ class SparkTransform(implicit sc: SparkContext) extends Transform {
   }
 
   def toParquet(model: TransformModel, data: DataFrame) = {
-    data.write.mode(SaveMode.Overwrite).parquet(model.toPath.getOrElse(""))
+    data.write.mode(model.saveMode).parquet(model.toPath.getOrElse(""))
   }
 
   /**
    * from orc 有问题, 这里不能这么处理
    * orc 必须使用HiveContext
-   * 
+   *
    */
   def fromOrc(model: TransformModel)(implicit sqlContext: SQLContext): DataFrame = {
     val data = sqlContext.read.orc(model.fromPath.getOrElse(""))
@@ -125,7 +169,7 @@ class SparkTransform(implicit sc: SparkContext) extends Transform {
   }
 
   def toOrc(model: TransformModel, data: DataFrame) = {
-    data.write.mode(SaveMode.Overwrite).orc(model.toPath.getOrElse(""))
+    data.write.mode(model.saveMode).orc(model.toPath.getOrElse(""))
   }
 
   def fromDB(model: TransformModel)(implicit sc: SparkContext, sqlContext: SQLContext): DataFrame = {
@@ -150,7 +194,8 @@ class SparkTransform(implicit sc: SparkContext) extends Transform {
         Row(Seq.range(1, count + 1).map(r.getString): _*)
       }).cache()
 
-    val schema = getStructType(jdbc.get, model.dbSql)
+    //TODO 这里不应该是 None
+    val schema = getStructType(jdbc.get, model.sqling(None))
     val data = sqlContext.createDataFrame(rdd, schema)
 
     data.printSchema

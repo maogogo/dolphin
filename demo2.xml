@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <dolphin>
 	<formats>
-		<format name="csv" delimiter="\|" />
+		<format name="csv" delimiter="\|" header="false" />
 		<format name="date" f="yyyyMMddHHmmss" />
 	</formats>
 
@@ -14,20 +14,41 @@
 			username="channel" password="channel" />
 	</dbsources>
 
+	<!-- model: append, error, override -->
 	<transforms>
-		<transform from="csv" to="cache" fromPath="/data/in/toan/bb/aa.txt"
-			toPath="" format="" table="" sql="" tmpTable="" hiveTable="" model="">
+		<transform from="csv" to="" fromPath="/data/in/toan/bb/bb.txt"
+			toPath="" format="" table="" sql="" tmpTable="p_t_component_d"
+			hiveTable="" mode="" process="select a from p_t_component_d group by a" cache="true">
+			<columns>
+				<column name="a" cname="" type="" nullable="" />
+				<column name="b" cname="" type="" nullable="" />
+				<column name="c" cname="" type="" nullable="" />
+				<column name="d" cname="" type="" nullable="" format="date" />
+			</columns>
+			<!-- <subtransform from="sql" to="csv" fromPath=""
+				toPath="/data/out/toan/dd/{dd}.txt" format="" table=""
+				sql="select count(1) from p_t_component_d where aa={aa}" tmpTable=""
+				hiveTable="" model="" process="">
+			</subtransform> -->
+
+		</transform>
+
+		<!-- <transform from="csv" to="parquet" fromPath="/data/in/toan/bb/aa.txt"
+			toPath="/data/out/toan/bb/" format="" table="" sql="" tmpTable=""
+			hiveTable="" mode="append" process="">
 			<columns>
 				<column name="aa" cname="" type="" nullable="" />
 				<column name="bb" cname="" type="" nullable="" />
 				<column name="cc" cname="" type="" nullable="" />
 				<column name="dd" cname="" type="" nullable="" format="date" />
 			</columns>
-			<transform from="sql" to="csv" fromPath=""
-				toPath="/data/in/toan/bb/t_component_d/" format="" table=""
-				sql="select * from p_t_component_d where aa={aa}" tmpTable="" hiveTable="" model="">
-			</transform>
-		</transform>
+		</transform> -->
+
+		<!-- process: -->
+		<!-- <transform from="parquet" to="csv" fromPath="/data/out/toan/bb/"
+			toPath="/data/out/toan/cc/" format="" table="" sql="" tmpTable="t_aabbcc"
+			hiveTable="" mode="" process="select count(1) from t_aabbcc">
+		</transform> -->
 
 		<!-- <transform from="sql" to="csv" fromPath="" toPath="/data/in/toan/bb/t_component_d/" 
 			format="" table="" sql="select count(1) from p_t_component_d" tmpTable="" 

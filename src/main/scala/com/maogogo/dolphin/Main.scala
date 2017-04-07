@@ -1,22 +1,9 @@
 package com.maogogo.dolphin
 
 import org.apache.spark._
-import com.databricks.spark.csv._
-import org.apache.spark.sql.types._
-import org.apache.spark.sql._
-import org.apache.spark.sql.hive._
-import scala.xml._
-import scala.collection.JavaConversions._
-import com.maogogo.dolphin.modules.DolphinModule
-import org.apache.commons.lang3.time.StopWatch
-import org.apache.spark.sql.catalyst.CatalystTypeConverters
-import org.apache.spark.rdd.JdbcRDD
-import java.sql.DriverManager
-import java.sql.Connection
-import com.maogogo.dolphin.modules._
-import java.util.Properties
-import com.maogogo.dolphin.services.HiveTransform
-import org.apache.hadoop.hbase.HBaseConfiguration
+import com.maogogo.dolphin.modules.ServicesModule
+import org.apache.spark.sql.SQLContext
+import com.maogogo.dolphin.services.SparkTransform
 
 /**
  * 创建外部表
@@ -37,21 +24,70 @@ import org.apache.hadoop.hbase.HBaseConfiguration
  *
  * sbt "run demo2.xml"
  */
-object Main {//extends DolphinModule {
+object Main extends ServicesModule {
 
-  //  private[this] val conf: SparkConf = new SparkConf().setAppName("TestEmpno") //.setMaster("app04")
-  //  implicit val sc: SparkContext = new SparkContext(conf)
+  private[this] val conf: SparkConf = new SparkConf().setAppName("TestEmpno") //.setMaster("spark://60.205.127.163:7077")
+  implicit val sc: SparkContext = new SparkContext(conf)
   //  implicit val sqlContent: SQLContext = new SQLContext(sc)
 
   def main(args: Array[String]): Unit = {
-    
-    //val conf = HBaseConfiguration.create()
-    
-    
 
-//    println(logo)
-//
-//    println(args(0))
+    //    val hConf = HBaseConfiguration.create()
+    //    hConf.set(HConstants.ZOOKEEPER_QUORUM, "60.205.127.163")
+    //    hConf.set(HConstants.ZOOKEEPER_CLIENT_PORT, "20181")
+    //
+    //    //val jobConf = new JobConf(hConf)
+    //    //jobConf.setInputFormat(theClass)
+    //    //jobConf.setOutputFormat(classOf[TableOutputFormat])
+    //    //jobConf.set(TableOutputFormat.OUTPUT_TABLE, "small")
+    //    hConf.set(TableInputFormat.INPUT_TABLE, "small")
+    //
+    //    val hBaseRDD = sc.newAPIHadoopRDD(hConf, classOf[TableInputFormat],
+    //      classOf[org.apache.hadoop.hbase.io.ImmutableBytesWritable],
+    //      classOf[org.apache.hadoop.hbase.client.Result])
+    //
+    //    val count = hBaseRDD.count()
+    //    println("count ===>>>>" + count)
+    //    val reg = """\{(.*?)\}""".r
+    //
+
+    val models = provideDolphinModel(args(0))
+
+    val spark = new SparkTransform
+
+    spark.transform(models)
+
+    sc.stop
+
+    //    transforms.map { trans =>
+    //
+    //      trans.subTransform.map { child =>
+    //        println(child.sql)
+    //        println("--------------------------")
+    //        val dd = reg.findAllMatchIn(child.sql.getOrElse("")).toList.map { x =>
+    //          println("x.matched ==>>" + x.group(1))
+    //          x.group(1)
+    //        }
+    //      }
+    //    }
+
+    //    val m = Map("aa" -> "a1", "bb" -> "b1")
+    //    val s = "select name from table where id>{aa} and name like '%{bb}%'"
+    //
+    //    val reg = """\{(.*?)\}""".r
+    //    println("==>>>>")
+
+    //    val dd = reg.findAllMatchIn(s).toList.map {x =>
+    //      println("x.matched ==>>" + x.group(1))
+    //    }
+
+    //    println("--->>>>>" + dd)
+
+    //val conf = HBaseConfiguration.create()
+
+    //    println(logo)
+    //
+    //    println(args(0))
 
     //    val schema = StructType(Seq(
     //      StructField("aa", StringType, true),

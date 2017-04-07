@@ -141,7 +141,7 @@ class HiveTransform(implicit sc: SparkContext) extends Transform {
         Row(Seq.range(1, count + 1).map(r.getString): _*)
       }).cache()
 
-    val schema = getStructType(jdbc.get, model.dbSql)
+    val schema = getStructType(jdbc.get, model.sqling(None))
     val data = sqlContext.createDataFrame(rdd, schema)
 
     data.printSchema
