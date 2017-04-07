@@ -37,6 +37,8 @@ class SparkTransform(implicit sc: SparkContext) extends Transform {
   def subTransform(model: TransformModel, dataRDD: DataFrame)(implicit sqlContext: SQLContext): Unit = {
 
     if (model.subTransform.isDefined) {
+      
+      
       val tmpRDD = dataRDD.collect().map(r => Map(dataRDD.columns.zip(r.toSeq): _*))
       dataRDD.collect().map { r =>
         println("r ==>>>" + r)
