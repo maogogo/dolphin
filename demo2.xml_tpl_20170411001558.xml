@@ -16,19 +16,22 @@
 
 	<!-- model: append, error, override -->
 	<transforms>
-		<transform from="hadoop" action="" deleteSource="" to="csv" fromPath="/data/in/toan/bb/bb.txt"
-			toPath="/data/in/toan/dd/" format="" table="" sql="" tmpTable=""
-			hiveTable="" mode="" process="" cache="true">
-			<!-- <columns> <column name="a" cname="" type="" nullable="" /> <column 
-				name="b" cname="" type="" nullable="" /> <column name="c" cname="" type="" 
-				nullable="" /> <column name="d" cname="" type="" nullable="" format="date" 
-				/> </columns> -->
-			<!-- <subtransform from="sql" to="csv" fromPath="" toPath="/data/out/toan/dd/{a}/" 
-				format="" table="" sql="select count(1) from p_t_component_d where aa={a}" 
-				tmpTable="" hiveTable="" model="" process=""> </subtransform> -->
-				
-			<!-- merger 时候 to 最好是一个文件名 -->
-			<!-- <hadoop action="" from="" to="" target="" deleteSource=""/> -->
+		<transform from="csv" to="" fromPath="/data/in/toan/112233/bb.txt"
+			toPath="" format="" table="aabbcc" sql="" tmpTable="p_t_component_d"
+			hiveTable="" mode="" process="select a from p_t_component_d group by a"
+			cache="true">
+			<columns>
+				<column name="a" cname="" type="" nullable="" />
+				<column name="b" cname="" type="" nullable="" />
+				<column name="c" cname="" type="" nullable="" />
+				<column name="d" cname="" type="" nullable="" format="date" />
+			</columns>
+			<subtransform from="sql" to="csv" fromPath=""
+				toPath="/data/out/toan/dd/{a}/" format="" table=""
+				sql="select count(1) from p_t_component_d where aa={a}" tmpTable=""
+				hiveTable="" model="" process="">
+			</subtransform>
+
 		</transform>
 
 		<!-- <transform from="csv" to="parquet" fromPath="/data/in/toan/bb/aa.txt" 

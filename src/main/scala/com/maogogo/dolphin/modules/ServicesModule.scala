@@ -2,6 +2,9 @@ package com.maogogo.dolphin.modules
 
 import com.maogogo.dolphin.models._
 import scala.xml._
+import com.maogogo.dolphin.models.CSVSource
+import org.apache.derby.impl.store.raw.data.RemoveFile
+import org.apache.spark.sql.SaveMode
 
 trait ServicesModule { self =>
 
@@ -35,15 +38,74 @@ trait ServicesModule { self =>
       }
   }
 
-  private[this] def nodeToTransform(dbs: Option[Seq[DBSourceModel]] = None, childs: Option[TransformModel]): PartialFunction[Node, TransformModel] = {
+  private[this] def nodeToTransform(dbs: Option[Seq[DBSourceModel]] = None,
+    childs: Option[TransformModel]): PartialFunction[Node, TransformModel] = {
     case node =>
       val columns = nodeToColumns(node)
 
-      TransformModel(toAttributeText("from")(node).getOrElse(""), toAttributeText("to")(node).getOrElse(""),
-        toAttributeText("fromPath")(node), toAttributeText("toPath")(node), toAttributeText("format")(node),
-        toAttributeText("table")(node), toAttributeText("sql")(node), toAttributeText("tmpTable")(node),
-        toAttributeText("hiveTable")(node), toAttributeText("mode")(node), toAttributeText("process")(node),
-        toAttributeText("cache")(node).map(_.toBoolean), dbs, columns, childs)
+      val from = toAttributeText("from")(node).getOrElse("")
+      val toOption = toAttributeText("from")(node)
+      val fromPath = toAttributeText("fromPath")(node).getOrElse("")
+      val toPath = toAttributeText("toPath")(node).getOrElse("")
+
+      val modeOption = toAttributeText("mode")(node)
+      val sql = toAttributeText("sql")(node)
+      val tmpTable = toAttributeText("tmpTable")(node)
+      val processOption = toAttributeText("process")(node)
+      val format = toAttributeText("format")(node)
+
+      val source: FromSource = from match {
+        case "csv" => CSVSource(fromPath, format, columns.getOrElse(Seq.empty), tmpTable)
+        case "parquet" => ParquetSource(fromPath, sql, tmpTable)
+        case "orc" => ORCSource(fromPath, sql, tmpTable)
+        case "sql" => SQLSource(sql.getOrElse(""), tmpTable)
+        case "hadoop" =>
+
+          val actionOption = toAttributeText("action")(node)
+          val deleteSourceOption = toAttributeText("deleteSource")(node)
+
+          val deleteSource = deleteSourceOption match {
+            case Some(s) if !s.isEmpty && s.toLowerCase() == "true" => true
+            case _ => false
+          }
+
+          val action = actionOption match {
+            case Some("remove") => RemovePath(fromPath)
+            case Some("merge") => MergeFile(fromPath, toPath, deleteSource)
+            case Some("move") => MovePath(fromPath, toPath, deleteSource)
+            case Some("getmerge") => GetMergeFile(fromPath, toPath, deleteSource)
+            case _ => OtherAction(fromPath, toPath)
+          }
+          HadoopSource(action)
+        case _ => OtherSource(fromPath)
+      }
+
+      val saveMode = modeOption match {
+        case Some(s) if s.toLowerCase == "append" => SaveMode.Append
+        case Some(s) if s.toLowerCase == "error" => SaveMode.ErrorIfExists
+        case Some(s) if s.toLowerCase == "ignore" => SaveMode.Ignore
+        case _ => SaveMode.Overwrite
+      }
+
+      val target: Option[ToTarget] = toOption match {
+        case Some("csv") => Some(CSVTarget(toPath))
+        case Some("parquet") => Some(ParquetTarget(toPath, saveMode))
+        case Some("orc") => Some(ORCTarget(toPath, saveMode))
+        case _ => None
+      }
+
+      val process: Option[Process] = processOption match {
+        case Some(s) if !s.isEmpty => Some(SQLProcess(s))
+        case _ => None
+      }
+
+      TransformModel(source, dbs, process, childs, target)
+
+    //      TransformModel(toAttributeText("from")(node).getOrElse(""), toAttributeText("to")(node).getOrElse(""),
+    //        toAttributeText("fromPath")(node), toAttributeText("toPath")(node), toAttributeText("format")(node),
+    //        toAttributeText("table")(node), toAttributeText("sql")(node), toAttributeText("tmpTable")(node),
+    //        toAttributeText("hiveTable")(node), toAttributeText("mode")(node), toAttributeText("process")(node),
+    //        toAttributeText("cache")(node).map(_.toBoolean), dbs, columns, childs)
   }
 
   private[this] def nodeToSubTransform(dbs: Option[Seq[DBSourceModel]] = None): PartialFunction[Node, Option[TransformModel]] = {

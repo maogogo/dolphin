@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<dolphin>
+	<formats>
+		<format name="csv" delimiter="\|" header="false" />
+		<format name="date" f="yyyyMMddHHmmss" />
+	</formats>
+
+	<dbsources>
+		<!-- 配置数据库, 目前支持 mysql 和 oracle，不需要配置驱动, 下一个版本会支持密码加密 -->
+		<source name="mysql"
+			url="jdbc:mysql://60.205.141.127:19306/taibao?useSSL=false" username="root"
+			password="@WSX4rfv" />
+		<source name="oracle" url="jdbc:oracle:thin:@10.182.52.9:1521/chnldb"
+			username="channel" password="channel" />
+	</dbsources>
+
+	<!-- model: append, error, override -->
+	<transforms>
+		<transform from="csv" to="11" fromPath="/data/in/toan/bb/bb.txt"
+			toPath="" format="22" table="" sql="" tmpTable="p_t_component_d"
+			hiveTable="" mode="" process="select a from p_t_component_d group by a"
+			cache="true">
+			<columns>
+				<column name="a" cname="" type="" nullable="" />
+				<column name="b" cname="" type="" nullable="" />
+				<column name="c" cname="" type="" nullable="" />
+				<column name="d" cname="" type="" nullable="" format="date" />
+			</columns>
+			<subtransform from="sql" to="csv" fromPath=""
+				toPath="/data/out/toan/dd/{a}/" format="" table=""
+				sql="select count(1) from p_t_component_d where aa={a}" tmpTable=""
+				hiveTable="" model="" process="">
+			</subtransform>
+
+		</transform>
+
+	</transforms>
+</dolphin>

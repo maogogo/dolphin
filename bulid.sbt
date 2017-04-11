@@ -12,16 +12,14 @@ libraryDependencies ++= Seq(
   "org.apache.spark" %% "spark-core" % "1.6.1" % "provided",
   "org.apache.spark" %% "spark-sql" % "1.6.1",
   "org.apache.spark" %% "spark-hive" % "1.6.1",
+  "org.apache.spark" %% "spark-streaming-kafka" % "1.6.1",
+  "org.apache.hadoop" % "hadoop-hdfs" % "2.6.0",
   "com.databricks" %% "spark-csv" % "1.5.0",
   "mysql" % "mysql-connector-java" % "5.1.39",
   "org.apache.commons" % "commons-csv" % "1.4",
   "com.typesafe" % "config" % "1.3.1",
-  "org.apache.hbase" % "hbase" % "0.98.24-hadoop2",
-  "org.apache.hbase" % "hbase-client" % "0.98.24-hadoop2",
-  "org.apache.hbase" % "hbase-common" % "0.98.24-hadoop2",
-  "org.apache.hbase" % "hbase-server" % "0.98.24-hadoop2"
-  
-  //"com.typesafe.play" %% "twirl-api" % "1.3.0"
-  
+  "log4j" % "log4j" % "1.2.17",
+  "org.freemarker" % "freemarker" % "2.3.23",
+  "commons-io" % "commons-io" % "2.5"
   
 )

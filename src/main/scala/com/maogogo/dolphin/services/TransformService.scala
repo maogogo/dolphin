@@ -7,14 +7,8 @@ import org.apache.spark.sql.hive.HiveContext
 import org.apache.spark.sql.hive.HiveContext
 import org.apache.spark.sql.SQLContext
 
-trait Transform {
+trait TransformService {
   
-//  val spark: SQLContext = new SQLContext(sc)
-//  val hive: HiveContext = new HiveContext(sc)
-
-//  def from(model: Seq[TransformModel]): DataFrame
-//  def to(model: TransformModel, data: DataFrame): Unit
-
 }
 
 
