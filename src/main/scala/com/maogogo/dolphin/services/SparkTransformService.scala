@@ -22,52 +22,99 @@ class SparkTransformService(implicit sc: SparkContext) {
 
   implicit val sqlContext = new SQLContext(sc)
 
-  def transform(models: Seq[TransformModel]): Unit = {
+  def transforms(models: Seq[TransformModel], rowData: Option[Map[String, Any]] = None): Unit = {
 
-    models.map { model =>
-      //TODO hadoop source 
-      val _data = toDataFrame(sqlContext)(model.source)
+    def transform(model: TransformModel): Unit = {
+      val _data = toDataFrame(sqlContext, rowData)(model.source)
       val data = model.process match {
-        case Some(process) => toProcess(sqlContext)(model.source)
+        case Some(process) => toProcess(sqlContext, rowData)(model.source)
         case _ => _data
       }
+      toTmpTable(data)(sqlContext)(model.source.getTempTableName(rowData))
       model.subModel match {
-        //TODO 这里需要一个kv Map
-        case Some(smodel) => transform(Seq(smodel))
+        case Some(smodel) =>
+          val kv = data.cache.map { row => Map(data.columns.zip(row.toSeq): _*) }
+          kv.map { row =>
+            transforms(Seq(smodel), Some(row))
+          }
+
         case _ => Unit
       }
       model.target match {
-        case Some(target) => toTarget(data)(sqlContext)(target)
+        case Some(target) => toTarget(data)(sqlContext, rowData)(target)
         case _ => Unit
+      }
+    }
+
+    models.map { model =>
+      //TODO hadoop source 
+      model.source match {
+        case source: HadoopSource =>
+          val haddopConfig = new Configuration
+          val hdfs = FileSystem.get(haddopConfig)
+          toDoHadoop(haddopConfig, hdfs)(source)
+        case _ => transform(model)
       }
     }
   }
 
-  def toDataFrame(implicit sqlContent: SQLContext): PartialFunction[FromSource, DataFrame] = {
+  def toDoHadoop(haddopConfig: Configuration, hdfs: FileSystem): PartialFunction[FromSource, Unit] = {
+    case remove: ActionRemovePath => hdfs.delete(new Path(remove.target), true)
+    case move: ActionMovePath =>
+      FileUtil.copy(
+        hdfs, new Path(move.from),
+        hdfs, new Path(move.to),
+        move.deleteSource,
+        haddopConfig)
+    case merge: ActionMergeFile =>
+      FileUtil.copyMerge(
+        hdfs, new Path(merge.from),
+        hdfs, new Path(merge.to),
+        merge.deleteSource,
+        haddopConfig,
+        null)
+    case getMerge: ActionGetMergeFile =>
+      FileUtil.copyMerge(
+        hdfs, new Path(getMerge.from),
+        hdfs, new Path(getMerge.to),
+        getMerge.deleteSource,
+        haddopConfig,
+        null)
+
+      hdfs.copyToLocalFile(new Path(getMerge.to), new Path(getMerge.local))
+
+  }
+
+  def toDataFrame(implicit sqlContent: SQLContext, rowData: Option[Map[String, Any]] = None): PartialFunction[FromSource, DataFrame] = {
     case model: CSVSource =>
-      sqlContent.read.format("com.databricks.spark.csv").schema(model.getSchema).options(Map("path" -> model.path,
+      sqlContent.read.format("com.databricks.spark.csv").schema(model.getSchema).options(Map("path" -> model.getPath((rowData)),
         "header" -> "false", "delimiter" -> "|", "nullValue" -> "", "treatEmptyValuesAsNulls" -> "true")).load
-    case model: ParquetSource => sqlContext.read.parquet(model.path)
-    case model: ORCSource => sqlContext.read.orc(model.path)
+    case model: ParquetSource => sqlContext.read.parquet(model.getPath)
+    case model: ORCSource => sqlContext.read.orc(model.getPath)
     case model: SQLSource => sqlContext.sql(model.getSQL)
   }
 
-  def toProcess(implicit sqlContent: SQLContext): PartialFunction[FromSource, DataFrame] = {
+  def toTmpTable(data: DataFrame)(implicit sqlContent: SQLContext): PartialFunction[String, Unit] = {
+    case tmpTable if !tmpTable.isEmpty =>
+      data.registerTempTable(tmpTable)
+  }
+
+  def toProcess(implicit sqlContent: SQLContext, rowData: Option[Map[String, Any]] = None): PartialFunction[FromSource, DataFrame] = {
     case process: SQLProcess => sqlContext.sql(process.getSQL)
   }
 
-  def toTarget(data: DataFrame)(implicit sqlContent: SQLContext): PartialFunction[ToTarget, Unit] = {
+  def toTarget(data: DataFrame)(implicit sqlContent: SQLContext, rowData: Option[Map[String, Any]] = None): PartialFunction[ToTarget, Unit] = {
     case target: CSVTarget =>
-      println("===csv>>>>>>>>>>>>>>" + target)
+      println("====>>>>csv")
       //TODO 这里应该指定分区数
-      data.write.format("com.databricks.spark.csv").options(Map("path" -> target.path, "header" -> "false",
+      data.write.format("com.databricks.spark.csv").mode(SaveMode.Overwrite).options(Map("path" -> target.getPath(rowData), "header" -> "false",
         "delimiter" -> "|", "nullValue" -> "", "treatEmptyValuesAsNulls" -> "true")).save
     case target: ParquetTarget =>
-      println("===parquet>>>>>>>>>>>>>>" + target)
-      data.write.mode(target.saveMode).parquet(target.path)
+      println("====>>>>parquet")
+      data.write.mode(target.saveMode).parquet(target.getPath(rowData))
     case target: ORCTarget =>
-      println("===orc>>>>>>>>>>>>>>" + target)
-      data.write.mode(target.saveMode).orc(target.path)
+      println("====>>>>orc")
+      data.write.mode(target.saveMode).orc(target.getPath(rowData))
   }
 
 }

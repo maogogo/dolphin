@@ -59,7 +59,7 @@ params = {
 ##transform
 上级目录transforms
 
-> from: 需要转换的类型，支持类型：csv、parquet、orc、sql(已经注册为零时表才能使用这个配置)<br>
+> from: 需要转换的类型，支持类型：csv、parquet、orc、sql(已经注册为零时表才能使用这个配置), hadoop(新增)<br>
 > fromPath: 配合from使用，指定路径<br>
 > to: 转换为数据类型，支持：csv、parquet、orc、空(不做任何处理)<br>
 > toPath：配置to使用，指定路径<br>
@@ -70,6 +70,8 @@ params = {
 > hiveTable: 暂不使用<br>
 > model： 默认override, 支持override、error、append<br>
 > cache: 暂不使用<br>
+> action: from 类型为 hadoop是有效， remove、move、merge、getmerge
+> local:  from 类型为 hadoop是有效， 输出到本地路径
 
 
 ```xml

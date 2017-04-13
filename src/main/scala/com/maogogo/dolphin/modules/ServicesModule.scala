@@ -8,7 +8,7 @@ import org.apache.spark.sql.SaveMode
 
 trait ServicesModule { self =>
 
-  def provideDolphinModel(file: String): Seq[TransformModel] = {
+  def provideDolphinModel(file: String, params: Map[String, String]): Seq[TransformModel] = {
 
     val dolphin = XML.load(file)
 
@@ -18,8 +18,8 @@ trait ServicesModule { self =>
     }
 
     (dolphin \\ "transforms" \\ "transform").map { node =>
-      val childs = nodeToSubTransform(Some(sources))(node)
-      nodeToTransform(Some(sources), childs)(node)
+      val childs = nodeToSubTransform(params, Some(sources))(node)
+      nodeToTransform(Some(sources), childs, params)(node)
     }
   }
 
@@ -39,12 +39,12 @@ trait ServicesModule { self =>
   }
 
   private[this] def nodeToTransform(dbs: Option[Seq[DBSourceModel]] = None,
-    childs: Option[TransformModel]): PartialFunction[Node, TransformModel] = {
+    childs: Option[TransformModel], params: Map[String, String]): PartialFunction[Node, TransformModel] = {
     case node =>
       val columns = nodeToColumns(node)
 
       val from = toAttributeText("from")(node).getOrElse("")
-      val toOption = toAttributeText("from")(node)
+      val toOption = toAttributeText("to")(node)
       val fromPath = toAttributeText("fromPath")(node).getOrElse("")
       val toPath = toAttributeText("toPath")(node).getOrElse("")
 
@@ -53,12 +53,13 @@ trait ServicesModule { self =>
       val tmpTable = toAttributeText("tmpTable")(node)
       val processOption = toAttributeText("process")(node)
       val format = toAttributeText("format")(node)
+      val local = toAttributeText("local")(node)
 
       val source: FromSource = from match {
-        case "csv" => CSVSource(fromPath, format, columns.getOrElse(Seq.empty), tmpTable)
-        case "parquet" => ParquetSource(fromPath, sql, tmpTable)
-        case "orc" => ORCSource(fromPath, sql, tmpTable)
-        case "sql" => SQLSource(sql.getOrElse(""), tmpTable)
+        case "csv" => CSVSource(params, fromPath, format, columns.getOrElse(Seq.empty), tmpTable)
+        case "parquet" => ParquetSource(params, fromPath, sql, tmpTable)
+        case "orc" => ORCSource(params, fromPath, sql, tmpTable)
+        case "sql" => SQLSource(params, sql.getOrElse(""), tmpTable)
         case "hadoop" =>
 
           val actionOption = toAttributeText("action")(node)
@@ -69,15 +70,15 @@ trait ServicesModule { self =>
             case _ => false
           }
 
-          val action = actionOption match {
-            case Some("remove") => RemovePath(fromPath)
-            case Some("merge") => MergeFile(fromPath, toPath, deleteSource)
-            case Some("move") => MovePath(fromPath, toPath, deleteSource)
-            case Some("getmerge") => GetMergeFile(fromPath, toPath, deleteSource)
+          actionOption match {
+            case Some("remove") => ActionRemovePath(fromPath)
+            case Some("merge") => ActionMergeFile(fromPath, toPath, deleteSource)
+            case Some("move") => ActionMovePath(fromPath, toPath, deleteSource)
+            case Some("getmerge") => ActionGetMergeFile(fromPath, toPath, local.getOrElse(""), deleteSource)
             case _ => OtherAction(fromPath, toPath)
           }
-          HadoopSource(action)
-        case _ => OtherSource(fromPath)
+        //HadoopSource(action)
+        case _ => OtherSource(params, fromPath)
       }
 
       val saveMode = modeOption match {
@@ -88,14 +89,14 @@ trait ServicesModule { self =>
       }
 
       val target: Option[ToTarget] = toOption match {
-        case Some("csv") => Some(CSVTarget(toPath))
-        case Some("parquet") => Some(ParquetTarget(toPath, saveMode))
-        case Some("orc") => Some(ORCTarget(toPath, saveMode))
+        case Some("csv") => Some(CSVTarget(params, toPath))
+        case Some("parquet") => Some(ParquetTarget(params, toPath, saveMode))
+        case Some("orc") => Some(ORCTarget(params, toPath, saveMode))
         case _ => None
       }
 
       val process: Option[Process] = processOption match {
-        case Some(s) if !s.isEmpty => Some(SQLProcess(s))
+        case Some(s) if !s.isEmpty => Some(SQLProcess(params, s))
         case _ => None
       }
 
@@ -108,9 +109,9 @@ trait ServicesModule { self =>
     //        toAttributeText("cache")(node).map(_.toBoolean), dbs, columns, childs)
   }
 
-  private[this] def nodeToSubTransform(dbs: Option[Seq[DBSourceModel]] = None): PartialFunction[Node, Option[TransformModel]] = {
+  private[this] def nodeToSubTransform(params: Map[String, String], dbs: Option[Seq[DBSourceModel]] = None): PartialFunction[Node, Option[TransformModel]] = {
     case node =>
-      node.child.find(_.label == "subtransform").headOption.map { nodeToTransform(dbs, None) }
+      node.child.find(_.label == "subtransform").headOption.map { nodeToTransform(dbs, None, params) }
   }
 
   private[this] def toAttributeText(name: String): PartialFunction[Node, Option[String]] = {

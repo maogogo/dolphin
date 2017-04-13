@@ -9,6 +9,7 @@ import org.apache.spark.sql.SQLContext
 import com.maogogo.dolphin.modules.ServicesModule
 import com.maogogo.dolphin.services._
 import com.typesafe.config.ConfigFactory
+import scala.collection.JavaConversions._
 
 /**
  * 创建外部表
@@ -38,7 +39,7 @@ object Main extends ServicesModule {
 
   def main(args: Array[String]): Unit = {
 
-    PropertyConfigurator.configure("log4j.properties")
+    //PropertyConfigurator.configure("log4j.properties")
 
     println(logo)
 
@@ -51,13 +52,14 @@ object Main extends ServicesModule {
 
     try {
 
-      val path = TemplateService.createTemplate
-      println(s"create template path: $path")
-      val models = provideDolphinModel(path)
+      val template = TemplateService.createTemplate
+      println(s"create template path: ${template._1}")
+      println(s"get params: ${template._1}")
+      val models = provideDolphinModel(template._1, template._2)
 
       val spark = new SparkTransformService
-      println("models ==>>" + models)
-      spark.transform(models)
+
+      spark.transforms(models)
 
       sc.stop
 

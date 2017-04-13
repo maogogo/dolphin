@@ -4,19 +4,38 @@ import org.apache.spark.sql.types.StructType
 import org.apache.spark.sql.types.StructField
 import org.apache.spark.sql.types.StringType
 import scala.io.Source
+import com.maogogo.dolphin.services.TemplateService
 
 trait FromSource {
 
+  val path: String
+  val tmpTable: Option[String]
+  val params: Map[String, String]
+
   val reg = """\{(.*?)\}""".r
-  
-  def __getSQL(sql: String): String = {
+
+  def getPath(implicit rowData: Option[Map[String, Any]] = None): String = {
+    path match {
+      case p if !p.isEmpty => __replaceStr(p, rowData)
+      case _ => ""
+    }
+  }
+
+  def getTempTableName(rowData: Option[Map[String, Any]] = None): String = {
+    tmpTable match {
+      case Some(name) if !name.isEmpty => __replaceStr(name, rowData)
+      case _ => ""
+    }
+  }
+
+  def __getSQL(sql: String, rowData: Option[Map[String, Any]] = None): String = {
     val tmpSQL = sql match {
       case s if !s.isEmpty && s.trim.toLowerCase.startsWith("select") => s.trim
       case s if !s.isEmpty =>
         Source.fromFile(s).getLines.mkString(" ").stripMargin.trim
       case _ => ""
     }
-    __replaceStr(tmpSQL, None)
+    __replaceStr(TemplateService.getContext(tmpSQL, params), rowData, true)
   }
 
   def __replaceStr(source: String, kv: Option[Map[String, Any]] = None, flag: Boolean = true): String = {
@@ -34,23 +53,25 @@ trait FromSource {
   }
 }
 
-case class CSVSource(path: String, format: Option[String], columns: Seq[ColumnModel], tmpTable: Option[String]) extends FromSource {
+case class CSVSource(params: Map[String, String], path: String, format: Option[String], columns: Seq[ColumnModel], val tmpTable: Option[String]) extends FromSource {
+
   def getSchema: StructType =
     StructType(columns.map { x =>
       StructField(x.name, StringType, x.nullable)
     })
 }
 
-case class ParquetSource(path: String, sql: Option[String], tmpTable: Option[String]) extends FromSource
+case class ParquetSource(params: Map[String, String], path: String, sql: Option[String], tmpTable: Option[String]) extends FromSource
 
-case class ORCSource(path: String, sql: Option[String], tmpTable: Option[String]) extends FromSource
+case class ORCSource(params: Map[String, String], path: String, sql: Option[String], tmpTable: Option[String]) extends FromSource
 
-case class SQLSource(sql: String, tmpTable: Option[String]) extends FromSource {
-  def getSQL: String = __getSQL(sql)
+case class SQLSource(params: Map[String, String], sql: String, tmpTable: Option[String] = None) extends FromSource {
+  val path: String = ""
+  def getSQL(implicit rowData: Option[Map[String, Any]] = None): String = __getSQL(sql)
 }
 
-case class HadoopSource(action: Action) extends FromSource
+case class OtherSource(params: Map[String, String], path: String, tmpTable: Option[String] = None) extends FromSource //(path: String, from: String, to: Option[String], sql: Option[String]) 
 
-case class OtherSource(path: String) extends FromSource//(path: String, from: String, to: Option[String], sql: Option[String]) 
-
-case class DBSource(name: String, url: String, username: String, password: String) extends FromSource
+case class DBSource(params: Map[String, String], name: String, path: String, username: String, password: String) extends FromSource {
+  val tmpTable: Option[String] = None
+}

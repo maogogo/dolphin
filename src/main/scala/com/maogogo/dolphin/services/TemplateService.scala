@@ -7,17 +7,23 @@ import com.typesafe.config.Config
 import java.util.Date
 import java.io.PrintWriter
 import org.apache.commons.io.FilenameUtils
+import scala.collection.JavaConversions._
+import freemarker.cache.StringTemplateLoader
+import java.io.StringWriter
+import scala.collection.JavaConverters._
 
 trait TemplateService {
 
-  def createTemplate(implicit config: Config): String = {
+  def createTemplate(implicit config: Config): (String, Map[String, String]) = {
     val input = config.getString("input")
     val tpl = config.getString("tpl_path")
-    val params = config.getObject("params").unwrapped()
+    val params = config.getObject("params").unwrapped.map { kv =>
+      (kv._1 -> String.valueOf(kv._2))
+    }.toMap
 
     val sdf = new SimpleDateFormat("yyyyMMddHHmmss")
     val date = sdf.format(new Date)
-    
+
     //TODO file exists
     val file = new File(input)
     val fileNm = FilenameUtils.getName(file.getName)
@@ -31,8 +37,19 @@ trait TemplateService {
     val outFile = new File(path)
     val pw = new PrintWriter(outFile)
     t.process(params, pw)
-    
-    path
+
+    (path, params)
+  }
+
+  def getContext(context: String, params: Map[String, String]): String = {
+    val configuration = new Configuration
+    val stringLoader = new StringTemplateLoader
+    stringLoader.putTemplate("myTemplate", context)
+    configuration.setTemplateLoader(stringLoader)
+    val t = configuration.getTemplate("myTemplate", "utf-8")
+    val writer = new StringWriter
+    t.process(params.asJava, writer)
+    writer.toString
   }
 
   def checkFilePath(tpl: String): Unit = {

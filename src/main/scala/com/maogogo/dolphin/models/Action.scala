@@ -1,13 +1,17 @@
 package com.maogogo.dolphin.models
 
-sealed trait Action
+sealed trait HadoopSource extends FromSource {
+  val path = ""
+  val tmpTable: Option[String] = None
+  val params: Map[String, String] = Map.empty
+}
 
-case class MovePath(from: String, to: String, deleteSource: Boolean) extends Action
+case class ActionMovePath(from: String, to: String, deleteSource: Boolean) extends HadoopSource
 
-case class MergeFile(from: String, to: String, deleteSource: Boolean) extends Action
+case class ActionMergeFile(from: String, to: String, deleteSource: Boolean) extends HadoopSource
 
-case class RemovePath(target: String) extends Action
+case class ActionRemovePath(target: String) extends HadoopSource
 
-case class GetMergeFile(from: String, to: String, deleteSource: Boolean) extends Action
+case class ActionGetMergeFile(from: String, to: String, local: String, deleteSource: Boolean) extends HadoopSource
 
-case class OtherAction(from: String, to: String) extends Action
+case class OtherAction(from: String, to: String) extends HadoopSource
