@@ -48,6 +48,11 @@ object Main extends ServicesModule {
       throw new Exception("please input conf param file path")
     }
 
+    val arguments = args.drop(1).map { p =>
+      val _args = p.split(":", -1)
+      (_args(0) -> _args(1))
+    }.toMap
+
     implicit val config = ConfigFactory parseFile (new File(args(0))) resolve
 
     try {
@@ -55,11 +60,15 @@ object Main extends ServicesModule {
       val template = TemplateService.createTemplate
       println(s"create template path: ${template._1}")
       println(s"get params: ${template._1}")
-      val models = provideDolphinModel(template._1, template._2)
 
       val spark = new SparkTransformService
 
-      spark.transforms(models)
+      val models = template._1.map(provideDolphinModel(_, template._2 ++: arguments))
+
+      models.foreach { tpl =>
+        println(s"strar template => ${tpl}")
+        spark.transforms(tpl, None)
+      }
 
       sc.stop
 

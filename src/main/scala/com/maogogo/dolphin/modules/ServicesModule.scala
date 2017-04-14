@@ -50,15 +50,19 @@ trait ServicesModule { self =>
 
       val modeOption = toAttributeText("mode")(node)
       val sql = toAttributeText("sql")(node)
+      val tableOption = toAttributeText("table")(node)
       val tmpTable = toAttributeText("tmpTable")(node)
       val processOption = toAttributeText("process")(node)
       val format = toAttributeText("format")(node)
       val local = toAttributeText("local")(node)
 
+      val partitionsOption = toAttributeText("partitions")(node)
+      val conditionsOption = toAttributeText("conditions")(node)
+
       val source: FromSource = from match {
-        case "csv" => CSVSource(params, fromPath, format, columns.getOrElse(Seq.empty), tmpTable)
-        case "parquet" => ParquetSource(params, fromPath, sql, tmpTable)
-        case "orc" => ORCSource(params, fromPath, sql, tmpTable)
+        case "csv" => CSVSource(fromPath, format, columns.getOrElse(Seq.empty), tmpTable)
+        case "parquet" => ParquetSource(fromPath, sql, tmpTable)
+        case "orc" => ORCSource(fromPath, sql, tmpTable)
         case "sql" => SQLSource(params, sql.getOrElse(""), tmpTable)
         case "hadoop" =>
 
@@ -78,7 +82,13 @@ trait ServicesModule { self =>
             case _ => OtherAction(fromPath, toPath)
           }
         //HadoopSource(action)
-        case _ => OtherSource(params, fromPath)
+        case x =>
+          val jdbc = dbs.flatMap(_.find(_.name == x))
+
+          if (jdbc.isDefined)
+            DBSource(from, jdbc.get, tableOption.getOrElse(""), conditionsOption.getOrElse(""), partitionsOption.getOrElse("10").toInt, tmpTable)
+          else
+            OtherSource(fromPath)
       }
 
       val saveMode = modeOption match {
@@ -89,9 +99,9 @@ trait ServicesModule { self =>
       }
 
       val target: Option[ToTarget] = toOption match {
-        case Some("csv") => Some(CSVTarget(params, toPath))
-        case Some("parquet") => Some(ParquetTarget(params, toPath, saveMode))
-        case Some("orc") => Some(ORCTarget(params, toPath, saveMode))
+        case Some("csv") => Some(CSVTarget(toPath, tmpTable))
+        case Some("parquet") => Some(ParquetTarget(toPath, saveMode, tmpTable))
+        case Some("orc") => Some(ORCTarget(toPath, saveMode, tmpTable))
         case _ => None
       }
 

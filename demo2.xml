@@ -17,7 +17,7 @@
 	<!-- model: append, error, override -->
 	<transforms>
 		<transform from="hadoop" action="" deleteSource="" to="csv" fromPath="/data/in/toan/bb/bb.txt"
-			toPath="/data/in/toan/dd/" format="" table="" sql="" tmpTable=""
+			toPath="/data/in/toan/dd/" format="" table="" sql="" tmpTable="" conditions="" partitions=""
 			hiveTable="" mode="" process="" cache="true">
 			<!-- <columns> <column name="a" cname="" type="" nullable="" /> <column 
 				name="b" cname="" type="" nullable="" /> <column name="c" cname="" type="" 
