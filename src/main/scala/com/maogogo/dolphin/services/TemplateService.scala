@@ -11,15 +11,24 @@ import scala.collection.JavaConversions._
 import freemarker.cache.StringTemplateLoader
 import java.io.StringWriter
 import scala.collection.JavaConverters._
+import freemarker.cache.FileTemplateLoader
+import freemarker.cache.ClassTemplateLoader
 
 trait TemplateService {
 
-  def createTemplate(implicit config: Config): (String, Map[String, String]) = {
-    val input = config.getString("input")
+  def createTemplate(implicit config: Config): (Seq[String], Map[String, String]) = {
+    val inputs = config.getString("input")
     val tpl = config.getString("tpl_path")
     val params = config.getObject("params").unwrapped.map { kv =>
       (kv._1 -> String.valueOf(kv._2))
     }.toMap
+
+    val files = inputs.split(",").map(aa(_, tpl, params))
+
+    (files, params)
+  }
+
+  def aa(input: String, tpl: String, params: Map[String, String]): String = {
 
     val sdf = new SimpleDateFormat("yyyyMMddHHmmss")
     val date = sdf.format(new Date)
@@ -33,12 +42,15 @@ trait TemplateService {
     val path = s"${tpl}${File.separator}${fileNm}_${date}.${fileExt}"
 
     val configuration = new Configuration()
+
+    //val ctl = new ClassTemplateLoader(getClass, "/")
+    //val tplLoader = new FileTemplateLoader(new File(filePath))
+    configuration.setDirectoryForTemplateLoading(new File(filePath))
     val t = configuration.getTemplate(input)
     val outFile = new File(path)
     val pw = new PrintWriter(outFile)
     t.process(params, pw)
-
-    (path, params)
+    path
   }
 
   def getContext(context: String, params: Map[String, String]): String = {

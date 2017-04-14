@@ -10,7 +10,7 @@ trait FromSource {
 
   val path: String
   val tmpTable: Option[String]
-  val params: Map[String, String]
+  //val params: Map[String, String]
 
   val reg = """\{(.*?)\}""".r
 
@@ -21,14 +21,14 @@ trait FromSource {
     }
   }
 
-  def getTempTableName(rowData: Option[Map[String, Any]] = None): String = {
+  def getTempTableName(rowData: Option[Map[String, Any]] = None): Option[String] = {
     tmpTable match {
-      case Some(name) if !name.isEmpty => __replaceStr(name, rowData)
-      case _ => ""
+      case Some(name) if !name.isEmpty => Some(__replaceStr(name, rowData))
+      case _ => None
     }
   }
 
-  def __getSQL(sql: String, rowData: Option[Map[String, Any]] = None): String = {
+  def __getSQL(sql: String, params: Map[String, String], rowData: Option[Map[String, Any]] = None): String = {
     val tmpSQL = sql match {
       case s if !s.isEmpty && s.trim.toLowerCase.startsWith("select") => s.trim
       case s if !s.isEmpty =>
@@ -53,7 +53,7 @@ trait FromSource {
   }
 }
 
-case class CSVSource(params: Map[String, String], path: String, format: Option[String], columns: Seq[ColumnModel], val tmpTable: Option[String]) extends FromSource {
+case class CSVSource(path: String, format: Option[String], columns: Seq[ColumnModel], val tmpTable: Option[String]) extends FromSource {
 
   def getSchema: StructType =
     StructType(columns.map { x =>
@@ -61,17 +61,30 @@ case class CSVSource(params: Map[String, String], path: String, format: Option[S
     })
 }
 
-case class ParquetSource(params: Map[String, String], path: String, sql: Option[String], tmpTable: Option[String]) extends FromSource
+case class ParquetSource(path: String, sql: Option[String], tmpTable: Option[String]) extends FromSource
 
-case class ORCSource(params: Map[String, String], path: String, sql: Option[String], tmpTable: Option[String]) extends FromSource
+case class ORCSource(path: String, sql: Option[String], tmpTable: Option[String]) extends FromSource
 
 case class SQLSource(params: Map[String, String], sql: String, tmpTable: Option[String] = None) extends FromSource {
   val path: String = ""
-  def getSQL(implicit rowData: Option[Map[String, Any]] = None): String = __getSQL(sql)
+  def getSQL(implicit rowData: Option[Map[String, Any]] = None): String = __getSQL(sql, params)
 }
 
-case class OtherSource(params: Map[String, String], path: String, tmpTable: Option[String] = None) extends FromSource //(path: String, from: String, to: Option[String], sql: Option[String]) 
+case class OtherSource(path: String, tmpTable: Option[String] = None) extends FromSource //(path: String, from: String, to: Option[String], sql: Option[String]) 
 
-case class DBSource(params: Map[String, String], name: String, path: String, username: String, password: String) extends FromSource {
-  val tmpTable: Option[String] = None
+case class DBSource(path: String, dbs: DBSourceModel, table: String, conditions: String, partitions: Int, tmpTable: Option[String]) extends FromSource {
+
+  //private[this] val conditions = "1 = ? AND 1 < ?"
+
+  //  def partitionSQL: String = {
+  //
+  //    val formIndex = sql.toLowerCase().lastIndexOf("from")
+  //    val whereIndex = sql.toLowerCase().lastIndexOf("where")
+  //
+  //    formIndex > whereIndex match {
+  //      case true => s"${sql} where ${conditions}"
+  //      case false => s"${sql} and ${conditions}"
+  //    }
+  //
+  //  }
 }

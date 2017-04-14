@@ -15,3 +15,5 @@ logs/
 zookeeper.out
 */.classpath
 */settings/
+.DS_Store
+.idea_modules/
