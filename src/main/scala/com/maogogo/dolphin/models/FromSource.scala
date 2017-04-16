@@ -32,7 +32,7 @@ trait FromSource {
     val tmpSQL = sql match {
       case s if !s.isEmpty && s.trim.toLowerCase.startsWith("select") => s.trim
       case s if !s.isEmpty =>
-        Source.fromFile(s).getLines.mkString(" ").stripMargin.trim
+        Source.fromFile(s).getLines.filterNot(_.trim.startsWith("--")).mkString(" ").stripMargin.trim
       case _ => ""
     }
     __replaceStr(TemplateService.getContext(tmpSQL, params), rowData, true)

@@ -8,6 +8,7 @@ import org.apache.spark.sql.types._
 import org.apache.spark.rdd.JdbcRDD
 import java.sql._
 import com.databricks.spark.csv._
+import com.databricks.spark.csv.CsvRelation
 import scala.io.Source
 import org.apache.log4j.Logger
 import org.apache.hadoop.conf.Configuration
@@ -28,12 +29,15 @@ class SparkTransformService(implicit sc: SparkContext) extends Serializable {
 
     def transform(model: TransformModel): Unit = {
       val _data = toDataFrame(sqlContext, rowData)(model.source)
+      
+      _data.printSchema
+      toTmpTable(_data)(sqlContext)(model.source.getTempTableName(rowData))
+      
       val data = model.process match {
-        case Some(process) => toProcess(sqlContext, rowData)(model.source)
+        case Some(process) => toProcess(sqlContext, rowData)(process)
         case _ => _data
       }
-      data.printSchema
-      toTmpTable(data)(sqlContext)(model.source.getTempTableName(rowData))
+      
       model.subModel match {
         case Some(smodel) =>
           val kv = data.cache.map { row => Map(data.columns.zip(row.toSeq): _*) }
@@ -102,10 +106,11 @@ class SparkTransformService(implicit sc: SparkContext) extends Serializable {
   def toDataFrame(implicit sqlContent: SQLContext, rowData: Option[Map[String, Any]] = None): PartialFunction[FromSource, DataFrame] = {
     case model: CSVSource =>
       println(s"start source from csv ${model}")
-      val data = sqlContent.read.format("com.databricks.spark.csv").schema(model.getSchema).options(Map("path" -> model.getPath((rowData)),
-        "header" -> "false", "delimiter" -> "|", "nullValue" -> "", "inferSchema" -> "true", "treatEmptyValuesAsNulls" -> "true")).load
-
-      data
+      //      .option("treatEmptyValuesAsNulls", "true" )
+      sqlContent.read.format("com.databricks.spark.csv").schema(model.getSchema).options(Map("path" -> model.getPath((rowData)),
+        "header" -> "false", "delimiter" -> "|", "nullValue" -> "", //"ignoreTrailingWhiteSpace" -> "true", 
+        "parserLib" -> "UNIVOCITY",
+        "inferSchema" -> "true", "escape" -> "\"", "treatEmptyValuesAsNulls" -> "true")).load.na.fill("NA")
     case model: ParquetSource =>
       println(s"start source from parquet ${model}")
       sqlContext.read.parquet(model.getPath)
@@ -131,7 +136,7 @@ class SparkTransformService(implicit sc: SparkContext) extends Serializable {
     case _ => Unit
   }
 
-  def toProcess(implicit sqlContent: SQLContext, rowData: Option[Map[String, Any]] = None): PartialFunction[FromSource, DataFrame] = {
+  def toProcess(implicit sqlContent: SQLContext, rowData: Option[Map[String, Any]] = None): PartialFunction[Process, DataFrame] = {
     case process: SQLProcess => sqlContext.sql(process.getSQL)
   }
 
@@ -140,12 +145,12 @@ class SparkTransformService(implicit sc: SparkContext) extends Serializable {
       println(s"start target to csv ${target}")
       //TODO 这里应该指定分区数
       data.write.format("com.databricks.spark.csv").mode(SaveMode.Overwrite).options(Map("path" -> target.getPath(rowData), "header" -> "false",
-        "delimiter" -> "|", "nullValue" -> "", "treatEmptyValuesAsNulls" -> "true")).save
+        "delimiter" -> "|", "nullValue" -> "", "dateFormat" -> "yyyyMMddHHmmss", "quote" -> "\"", "treatEmptyValuesAsNulls" -> "true")).save
       printExternalDDL(target, data)
       println(s"end target to csv")
     case target: ParquetTarget =>
       println(s"start target to parquet ${target}")
-      data.write.mode(target.saveMode).parquet(target.getPath(rowData))
+      data.repartition(200).write.mode(target.saveMode).parquet(target.getPath(rowData))
       printExternalDDL(target, data)
       println(s"end target to parquet")
     case target: ORCTarget =>

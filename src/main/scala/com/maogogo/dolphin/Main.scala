@@ -39,8 +39,6 @@ object Main extends ServicesModule {
 
   def main(args: Array[String]): Unit = {
 
-    //PropertyConfigurator.configure("log4j.properties")
-
     println(logo)
 
     if (args == null || args.length < 1) {
@@ -53,17 +51,19 @@ object Main extends ServicesModule {
       (_args(0) -> _args(1))
     }.toMap
 
+    println("arguments ===>>> " + arguments)
+
     implicit val config = ConfigFactory parseFile (new File(args(0))) resolve
 
     try {
 
-      val template = TemplateService.createTemplate
+      val template = TemplateService.createTemplate(arguments)
       println(s"create template path: ${template._1}")
       println(s"get params: ${template._1}")
 
       val spark = new SparkTransformService
 
-      val models = template._1.map(provideDolphinModel(_, template._2 ++: arguments))
+      val models = template._1.map(provideDolphinModel(_, template._2))
 
       models.foreach { tpl =>
         println(s"strar template => ${tpl}")

@@ -16,16 +16,16 @@ import freemarker.cache.ClassTemplateLoader
 
 trait TemplateService {
 
-  def createTemplate(implicit config: Config): (Seq[String], Map[String, String]) = {
+  def createTemplate(args: Map[String, String])(implicit config: Config): (Seq[String], Map[String, String]) = {
     val inputs = config.getString("input")
     val tpl = config.getString("tpl_path")
     val params = config.getObject("params").unwrapped.map { kv =>
       (kv._1 -> String.valueOf(kv._2))
     }.toMap
 
-    val files = inputs.split(",").map(aa(_, tpl, params))
+    val files = inputs.split(",").map(aa(_, tpl, params ++: args))
 
-    (files, params)
+    (files, params ++: args)
   }
 
   def aa(input: String, tpl: String, params: Map[String, String]): String = {
@@ -39,6 +39,7 @@ trait TemplateService {
     val fileExt = FilenameUtils.getExtension(file.getName)
     val filePath = FilenameUtils.getFullPath(file.getName)
     println("filepath => " + filePath)
+    println("params => " + params)
     val path = s"${tpl}${File.separator}${fileNm}_${date}.${fileExt}"
 
     val configuration = new Configuration()
@@ -49,7 +50,7 @@ trait TemplateService {
     val t = configuration.getTemplate(input)
     val outFile = new File(path)
     val pw = new PrintWriter(outFile)
-    t.process(params, pw)
+    t.process(params.asJava, pw)
     path
   }
 

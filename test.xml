@@ -16,22 +16,15 @@
 
 	<!-- model: append, error, override -->
 	<transforms>
-		<transform from="csv" to="${date}" fromPath="/data/in/toan/bb/bb.txt"
-			toPath="" format="${name}" table="" sql="" tmpTable="p_t_component_d"
-			hiveTable="" mode="" process="select a from p_t_component_d group by a"
-			cache="true">
+		<transform from="csv" to="parquet" fromPath="/data/in/toan/bb/cc.txt"
+			toPath="/data/in/toan/cc_pqt/" format="" table="" sql="" tmpTable=""
+			hiveTable="" mode="" process="" cache="true">
 			<columns>
 				<column name="a" cname="" type="" nullable="" />
 				<column name="b" cname="" type="" nullable="" />
 				<column name="c" cname="" type="" nullable="" />
 				<column name="d" cname="" type="" nullable="" format="date" />
 			</columns>
-			<subtransform from="sql" to="csv" fromPath=""
-				toPath="/data/out/toan/dd/{a}/" format="" table=""
-				sql="select count(1) from p_t_component_d where aa={a}" tmpTable=""
-				hiveTable="" model="" process="">
-			</subtransform>
-
 		</transform>
 
 	</transforms>
