@@ -29,15 +29,15 @@ class SparkTransformService(implicit sc: SparkContext) extends Serializable {
 
     def transform(model: TransformModel): Unit = {
       val _data = toDataFrame(sqlContext, rowData)(model.source)
-      
+
       _data.printSchema
       toTmpTable(_data)(sqlContext)(model.source.getTempTableName(rowData))
-      
+
       val data = model.process match {
         case Some(process) => toProcess(sqlContext, rowData)(process)
         case _ => _data
       }
-      
+
       model.subModel match {
         case Some(smodel) =>
           val kv = data.cache.map { row => Map(data.columns.zip(row.toSeq): _*) }
@@ -106,11 +106,13 @@ class SparkTransformService(implicit sc: SparkContext) extends Serializable {
   def toDataFrame(implicit sqlContent: SQLContext, rowData: Option[Map[String, Any]] = None): PartialFunction[FromSource, DataFrame] = {
     case model: CSVSource =>
       println(s"start source from csv ${model}")
+      import org.apache.commons.csv.Lexer
       //      .option("treatEmptyValuesAsNulls", "true" )
       sqlContent.read.format("com.databricks.spark.csv").schema(model.getSchema).options(Map("path" -> model.getPath((rowData)),
-        "header" -> "false", "delimiter" -> "|", "nullValue" -> "", //"ignoreTrailingWhiteSpace" -> "true", 
-        "parserLib" -> "UNIVOCITY",
-        "inferSchema" -> "true", "escape" -> "\"", "treatEmptyValuesAsNulls" -> "true")).load.na.fill("NA")
+        "header" -> "false", "delimiter" -> "|", "nullValue" -> "", //"ignoreTrailingWhiteSpace" -> "true", "ignoreTrailingWhiteSpace" -> "true",
+        "charset" -> "UTF-8", "mode" -> "DROPMALFORMED", //"parserLib" -> "UNIVOCITY", 
+        "quote" -> "\"", "escape" -> "\\",
+        "inferSchema" -> "true", "treatEmptyValuesAsNulls" -> "true")).load //.repartition(500)
     case model: ParquetSource =>
       println(s"start source from parquet ${model}")
       sqlContext.read.parquet(model.getPath)

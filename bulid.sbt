@@ -20,6 +20,8 @@ libraryDependencies ++= Seq(
   "com.typesafe" % "config" % "1.3.1",
   "log4j" % "log4j" % "1.2.17",
   "org.freemarker" % "freemarker" % "2.3.23",
-  "commons-io" % "commons-io" % "2.5"
+  "commons-io" % "commons-io" % "2.5",
+  "org.apache.spark" %% "spark-streaming" % "1.6.1",
+  "org.apache.spark" %% "spark-streaming-kafka" % "1.6.1"
   
 )
